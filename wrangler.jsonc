@@ -1,0 +1,46 @@
+{
+  // Cloudflare Workers config for the SponsorFinder MCP server.
+  // Deploy with: pnpm deploy:worker  (== wrangler deploy)
+  //
+  // Unlike the Docker/Node build, Wrangler bundles the Worker entry directly
+  // from TypeScript source — there is no tsup step for this target.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "sponsor-finder-mcp",
+
+  // The Worker entry exports `default app` (a Hono app).
+  "main": "src/entry/worker.ts",
+
+  // Keep reasonably recent so Workers runtime features stay available.
+  "compatibility_date": "2025-01-01",
+
+  // Required so Node built-ins used by the MCP SDK / deps resolve on Workers.
+  "compatibility_flags": ["nodejs_compat"],
+
+  // Enable Workers observability (logs / metrics in the dashboard).
+  "observability": {
+    "enabled": true,
+  },
+
+  // Non-secret environment variables are safe to commit here.
+  "vars": {
+    "SPONSORFINDER_API_BASE": "https://api.sponsorfinder.io",
+
+    // Optional tuning knob (uncomment to override the 10000ms default):
+    // "UPSTREAM_TIMEOUT_MS": "10000"
+  },
+
+  // ── SECRETS ────────────────────────────────────────────────────────────────
+  // NEVER put SPONSORFINDER_API_KEY in this file. It is a server-side secret.
+  // Set it once per environment with:
+  //     wrangler secret put SPONSORFINDER_API_KEY
+  // (or via the Cloudflare dashboard: Workers > Settings > Variables > Secrets).
+
+  // ── ROUTES / CUSTOM DOMAIN ──────────────────────────────────────────────────
+  // Bind mcp.sponsorfinder.io to this Worker either in the dashboard
+  // (Workers > Triggers > Custom Domains / Routes) or by uncommenting a
+  // `routes` block like the following (requires the zone in your account):
+  //
+  // "routes": [
+  //   { "pattern": "mcp.sponsorfinder.io/*", "zone_name": "sponsorfinder.io" }
+  // ]
+}

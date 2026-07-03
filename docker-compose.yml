@@ -1,0 +1,47 @@
+# Docker Compose for the SponsorFinder MCP server (Node HTTP entry).
+#
+# Usage:
+#   1. Copy .env.example -> .env and fill in SPONSORFINDER_API_BASE / _API_KEY.
+#   2. docker compose up -d --build
+#
+# ── Reverse proxy / TLS ─────────────────────────────────────────────────────
+# This service speaks plain HTTP on :3001. In production a reverse proxy
+# (Caddy or nginx) terminates TLS at https://mcp.sponsorfinder.io and forwards
+# to this container. The proxy MUST:
+#   * pass POST, GET and DELETE through to /mcp (the Streamable HTTP transport
+#     uses POST for requests, GET for the SSE stream, DELETE to end a session);
+#   * disable response buffering so Server-Sent Events stream in real time
+#       - nginx:  proxy_buffering off;  proxy_read_timeout 3600s;  (and
+#                 proxy_set_header Connection '';  proxy_http_version 1.1;)
+#       - Caddy:  reverse_proxy buffers off (flush_interval -1);
+#   * forward the standard X-Forwarded-* headers.
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  sponsor-finder-mcp:
+    # Build the local Dockerfile for source-based deploys...
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # ...or comment out `build:` above and uncomment this to pull the published
+    # image instead (see .github/workflows/ci.yml):
+    # image: ghcr.io/alirezahamid/sponsor-finder-mcp:latest
+    container_name: sponsor-finder-mcp
+    restart: unless-stopped
+    # Small, stateless service — cap memory to keep it a good VPS citizen.
+    mem_limit: 128m
+    # SPONSORFINDER_API_BASE, SPONSORFINDER_API_KEY, PORT, UPSTREAM_TIMEOUT_MS.
+    env_file: .env
+    ports:
+      - '3001:3001'
+    # Container-level health probe (independent of any orchestrator/proxy).
+    healthcheck:
+      test:
+        - 'CMD'
+        - 'node'
+        - '--eval'
+        - "fetch('http://localhost:' + (process.env.PORT || 3001) + '/healthz').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3

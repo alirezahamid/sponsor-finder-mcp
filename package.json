@@ -1,0 +1,75 @@
+{
+  "name": "sponsor-finder-mcp",
+  "version": "1.0.0",
+  "description": "Authless remote MCP server to check UK and Netherlands work-visa sponsorship licences via the public SponsorFinder API.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Alireza Hamid",
+  "homepage": "https://sponsorfinder.io",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/alirezahamid/sponsor-finder-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/alirezahamid/sponsor-finder-mcp/issues"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "sponsorship",
+    "visa",
+    "uk",
+    "netherlands",
+    "immigration"
+  ],
+  "bin": {
+    "sponsor-finder-mcp": "dist/entry/stdio.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev:stdio": "tsx watch src/entry/stdio.ts",
+    "dev:http": "tsx watch src/entry/node.ts",
+    "start": "node dist/entry/node.js",
+    "start:stdio": "node dist/entry/stdio.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run --exclude '**/smoke.test.ts'",
+    "test:watch": "vitest",
+    "test:smoke": "vitest run test/smoke.test.ts",
+    "test:coverage": "vitest run --coverage --exclude '**/smoke.test.ts'",
+    "check": "pnpm typecheck && pnpm lint && pnpm test",
+    "deploy:worker": "wrangler deploy"
+  },
+  "dependencies": {
+    "@hono/mcp": "0.3.0",
+    "@hono/node-server": "2.0.8",
+    "@modelcontextprotocol/sdk": "1.29.0",
+    "hono": "4.12.27",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.38.0",
+    "@types/node": "24.7.0",
+    "@vitest/coverage-v8": "4.1.9",
+    "eslint": "9.38.0",
+    "prettier": "3.6.2",
+    "tsup": "8.5.1",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.46.2",
+    "vitest": "4.1.9",
+    "wrangler": "4.107.0"
+  },
+  "packageManager": "pnpm@11.7.0"
+}

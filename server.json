@@ -1,0 +1,16 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.json",
+  "name": "io.sponsorfinder/mcp",
+  "description": "Authless, read-only remote MCP server to check whether a company holds a UK or Netherlands work-visa sponsorship licence, via the public SponsorFinder API.",
+  "version": "1.0.0",
+  "repository": {
+    "url": "https://github.com/alirezahamid/sponsor-finder-mcp",
+    "source": "github"
+  },
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://mcp.sponsorfinder.io/mcp"
+    }
+  ]
+}

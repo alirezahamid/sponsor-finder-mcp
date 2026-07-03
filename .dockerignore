@@ -1,0 +1,14 @@
+node_modules
+dist
+coverage
+.git
+.github
+.env
+.env.*
+!.env.example
+.wrangler
+.dev.vars
+*.log
+test
+**/*.test.ts
+mcp-server-spec.md
