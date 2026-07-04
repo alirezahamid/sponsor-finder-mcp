@@ -7,6 +7,11 @@ import { createServer } from '../server.js';
 /** Canonical MCP endpoint path advertised everywhere. */
 export const MCP_PATH = '/mcp';
 
+/** Public source + docs links surfaced on the landing page. */
+export const REPO_URL = 'https://github.com/alirezahamid/sponsor-finder-mcp';
+export const DOCS_URL =
+  'https://github.com/alirezahamid/sponsor-finder-mcp/blob/main/docs/README.md';
+
 /**
  * Shared Hono app used by both the Node (VPS) and Cloudflare Workers entries.
  *
@@ -59,7 +64,8 @@ app.get('/', (c) =>
     description:
       'Check whether a company holds a UK or Netherlands work-visa sponsorship licence.',
     mcp_endpoint: new URL(MCP_PATH, c.req.url).toString(),
-    docs: 'https://sponsorfinder.io',
+    docs: DOCS_URL,
+    repository: REPO_URL,
     health: new URL('/healthz', c.req.url).toString(),
   }),
 );
