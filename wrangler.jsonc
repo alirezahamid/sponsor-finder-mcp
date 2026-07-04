@@ -34,6 +34,10 @@
   // Set it once per environment with:
   //     wrangler secret put SPONSORFINDER_API_KEY
   // (or via the Cloudflare dashboard: Workers > Settings > Variables > Secrets).
+  //
+  // Optional analytics (see notes): GA_MEASUREMENT_ID can be a plain var above,
+  // GA_API_SECRET must be a secret:
+  //     wrangler secret put GA_API_SECRET
 
   // ── ROUTES / CUSTOM DOMAIN ──────────────────────────────────────────────────
   // Bind mcp.sponsorfinder.io to this Worker either in the dashboard

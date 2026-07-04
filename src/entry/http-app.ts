@@ -31,7 +31,16 @@ function resolveEnv(cEnv: Env | undefined): Env {
 app.get('/healthz', (c) => c.json({ ok: true, service: 'sponsor-finder-mcp' }));
 
 app.all('/mcp', async (c) => {
-  const server = createServer(resolveEnv(c.env));
+  // On Workers, hand background work (analytics) to waitUntil so it isn't
+  // cancelled when the response returns. On Node the getter throws — ignore.
+  let waitUntil: ((p: Promise<unknown>) => void) | undefined;
+  try {
+    waitUntil = c.executionCtx.waitUntil.bind(c.executionCtx);
+  } catch {
+    waitUntil = undefined;
+  }
+
+  const server = createServer(resolveEnv(c.env), { waitUntil });
   const transport = new StreamableHTTPTransport();
   await server.connect(transport);
   return transport.handleRequest(c);

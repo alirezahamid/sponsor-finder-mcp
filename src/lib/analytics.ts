@@ -41,6 +41,13 @@ export interface Analytics {
   track(event: ToolEvent): void;
 }
 
+/**
+ * Keeps a background promise alive until it settles. On Cloudflare Workers this
+ * must be `ctx.waitUntil`, otherwise a fire-and-forget send is cancelled once the
+ * response returns. On Node it is unnecessary (the process outlives the request).
+ */
+export type WaitUntil = (promise: Promise<unknown>) => void;
+
 /** No-op analytics used when GA is not configured. */
 const NOOP: Analytics = { track() {} };
 
@@ -50,7 +57,10 @@ class Ga4Analytics implements Analytics {
   private readonly clientId = crypto.randomUUID();
   private readonly sessionId = crypto.randomUUID();
 
-  constructor(config: AnalyticsConfig) {
+  constructor(
+    config: AnalyticsConfig,
+    private readonly waitUntil: WaitUntil | undefined,
+  ) {
     const base = config.debug ? GA_DEBUG_ENDPOINT : GA_ENDPOINT;
     const params = new URLSearchParams({
       measurement_id: config.measurementId,
@@ -81,8 +91,11 @@ class Ga4Analytics implements Analytics {
       ],
     };
 
-    // Fire-and-forget: never await, never throw into the caller.
-    void this.send(payload);
+    // Never await or throw into the caller. On Workers, hand the promise to
+    // `waitUntil` so it survives past the response; on Node, fire-and-forget.
+    const promise = this.send(payload);
+    if (this.waitUntil) this.waitUntil(promise);
+    else void promise;
   }
 
   private async send(payload: unknown): Promise<void> {
@@ -99,7 +112,13 @@ class Ga4Analytics implements Analytics {
   }
 }
 
-/** Build an analytics sink; returns a no-op when GA is not configured. */
-export function createAnalytics(config: AnalyticsConfig | undefined): Analytics {
-  return config ? new Ga4Analytics(config) : NOOP;
+/**
+ * Build an analytics sink; returns a no-op when GA is not configured.
+ * Pass `waitUntil` on Cloudflare Workers so events survive past the response.
+ */
+export function createAnalytics(
+  config: AnalyticsConfig | undefined,
+  waitUntil?: WaitUntil,
+): Analytics {
+  return config ? new Ga4Analytics(config, waitUntil) : NOOP;
 }

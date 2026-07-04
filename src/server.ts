@@ -4,7 +4,7 @@ import type { z } from 'zod';
 
 import { SponsorFinderClient } from './api/client.js';
 import { loadConfig, type AppConfig } from './config.js';
-import { createAnalytics, type Analytics } from './lib/analytics.js';
+import { createAnalytics, type Analytics, type WaitUntil } from './lib/analytics.js';
 import { SponsorFinderError, toSafeMessage } from './lib/errors.js';
 import { logToolCall } from './lib/logger.js';
 import { checkLicenseTool } from './tools/check-license.js';
@@ -135,8 +135,13 @@ function getClient(config: AppConfig): SponsorFinderClient {
  * API client it wraps is memoised so caches survive across requests.
  *
  * @param env A plain environment record (`process.env` or Workers `c.env`).
+ * @param options.waitUntil Workers `ctx.waitUntil`, so background analytics
+ *   sends complete after the response is returned. Omit on Node.
  */
-export function createServer(env: Record<string, string | undefined>): McpServer {
+export function createServer(
+  env: Record<string, string | undefined>,
+  options: { waitUntil?: WaitUntil | undefined } = {},
+): McpServer {
   const config = loadConfig(env);
   const deps: ToolDeps = { client: getClient(config) };
 
@@ -149,16 +154,16 @@ export function createServer(env: Record<string, string | undefined>): McpServer
       'Check whether a company holds a UK or Netherlands work-visa sponsorship licence.',
   });
 
-  const options: RegisterOptions = {
-    analytics: createAnalytics(config.analytics),
+  const toolOptions: RegisterOptions = {
+    analytics: createAnalytics(config.analytics, options.waitUntil),
     captureQueryNames: config.captureQueryNames,
     clientName: () => server.server.getClientVersion()?.name,
   };
 
-  registerTool(server, deps, checkLicenseTool, options);
-  registerTool(server, deps, searchSponsorsTool, options);
-  registerTool(server, deps, getSponsorDetailsTool, options);
-  registerTool(server, deps, getRegisterInfoTool, options);
+  registerTool(server, deps, checkLicenseTool, toolOptions);
+  registerTool(server, deps, searchSponsorsTool, toolOptions);
+  registerTool(server, deps, getSponsorDetailsTool, toolOptions);
+  registerTool(server, deps, getRegisterInfoTool, toolOptions);
 
   return server;
 }
