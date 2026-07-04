@@ -30,7 +30,11 @@ const inputSchema = {
     .string()
     .min(2)
     .max(100)
-    .describe('Company name, exact or approximate (typos OK)'),
+    .describe(
+      "The company's registered legal entity name — not a brand, product, or " +
+        'trading name, and not a URL. If the user gave a brand name or website, ' +
+        'resolve the official registered legal name first, then pass it here.',
+    ),
   country: z
     .enum(['uk', 'nl', 'both'])
     .default('both')
@@ -278,11 +282,16 @@ function renderNotFound(
   const suggestionText =
     suggestions.length > 0
       ? `\nClosest names on the register: ${suggestions.map((c) => c.name).join('; ')}. Check spelling?`
-      : '\nDouble-check the spelling, or try the full registered company name.';
+      : '';
+
+  const legalNameTip =
+    '\nThe register uses official registered legal entity names. If you searched a brand, ' +
+    "product, or trading name, resolve the company's registered legal name (e.g. from its " +
+    'website or the relevant companies register) and try again.';
 
   const text = [
     `❌ No ${COUNTRY_LABEL[country]} sponsor found matching "${classification.query}".`,
-    `Absence from the register means the company cannot currently sponsor that visa type.${suggestionText}`,
+    `Absence from the register means the company cannot currently sponsor that visa type.${suggestionText}${legalNameTip}`,
     dataAsOfLine(status[country].lastUpdated, country),
   ].join('\n');
 
@@ -318,8 +327,13 @@ export const checkLicenseTool: ToolDefinition<typeof inputSchema> = {
   title: 'Check Sponsorship Licence',
   description:
     'Check whether a company holds a UK or Netherlands work-visa sponsorship licence. ' +
-    'Handles typos and partial names. Returns licence routes, ratings, locations and register ' +
-    'dates. For exploring or filtering many companies, use search_sponsors instead.',
+    'The register lists official registered legal entity names, not brand, product, or ' +
+    'trading names. If the user provides a brand name, product name, or website, first ' +
+    "determine the company's registered legal name (via web search, the company's own " +
+    'website, or the relevant companies register) and pass that. Tolerates minor typos but ' +
+    'not brand-vs-legal-name mismatches. Returns licence routes, ratings, locations and ' +
+    'register dates. If results are ambiguous or none are found, refine the legal name and ' +
+    'try again. For exploring or filtering many companies, use search_sponsors instead.',
   inputSchema,
   async handler(args: Args, { client }): Promise<ToolResult> {
     const countries: Country[] = args.country === 'both' ? ['uk', 'nl'] : [args.country];
