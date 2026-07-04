@@ -1,7 +1,11 @@
 import { StreamableHTTPTransport } from '@hono/mcp';
 import { Hono } from 'hono';
+import type { Context } from 'hono';
 
 import { createServer } from '../server.js';
+
+/** Canonical MCP endpoint path advertised everywhere. */
+export const MCP_PATH = '/mcp';
 
 /**
  * Shared Hono app used by both the Node (VPS) and Cloudflare Workers entries.
@@ -28,9 +32,8 @@ function resolveEnv(cEnv: Env | undefined): Env {
   return processEnv;
 }
 
-app.get('/healthz', (c) => c.json({ ok: true, service: 'sponsor-finder-mcp' }));
-
-app.all('/mcp', async (c) => {
+/** Handle one MCP request over stateless Streamable HTTP. */
+async function handleMcp(c: Context<{ Bindings: Env }>): Promise<Response | undefined> {
   // On Workers, hand background work (analytics) to waitUntil so it isn't
   // cancelled when the response returns. On Node the getter throws — ignore.
   let waitUntil: ((p: Promise<unknown>) => void) | undefined;
@@ -44,7 +47,28 @@ app.all('/mcp', async (c) => {
   const transport = new StreamableHTTPTransport();
   await server.connect(transport);
   return transport.handleRequest(c);
-});
+}
+
+app.get('/healthz', (c) => c.json({ ok: true, service: 'sponsor-finder-mcp' }));
+
+// Human-friendly landing so visiting the domain in a browser explains itself
+// instead of returning a bare 404.
+app.get('/', (c) =>
+  c.json({
+    name: 'SponsorFinder MCP server',
+    description:
+      'Check whether a company holds a UK or Netherlands work-visa sponsorship licence.',
+    mcp_endpoint: new URL(MCP_PATH, c.req.url).toString(),
+    docs: 'https://sponsorfinder.io',
+    health: new URL('/healthz', c.req.url).toString(),
+  }),
+);
+
+app.all(MCP_PATH, handleMcp);
+
+// Tolerate connectors configured with the bare host (no `/mcp`): route the MCP
+// protocol methods on `/` to the same handler. GET `/` stays the landing page.
+app.on(['POST', 'DELETE'], '/', handleMcp);
 
 // Never leak stack traces or internal paths to clients (spec §7).
 app.onError((error, c) => {
