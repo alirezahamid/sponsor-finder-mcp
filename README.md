@@ -133,6 +133,32 @@ pnpm deploy:worker
 | `pnpm build`      | Bundle to `dist/` with tsup.                                          |
 | `pnpm check`      | `typecheck` + `lint` + `test` in one go.                              |
 
+## Analytics (optional)
+
+The server can report usage to **Google Analytics 4** via the server-side
+[Measurement Protocol](https://developers.google.com/analytics/devguides/collection/protocol/ga4).
+Because an MCP server has no browser, a GA/GTM JavaScript tag cannot run in it — the
+server sends events over HTTP instead. It works on both Node and Cloudflare Workers.
+
+Analytics are **off** unless both `GA_MEASUREMENT_ID` and `GA_API_SECRET` are set.
+Each tool call emits one `mcp_tool_call` event with **categorical parameters only** —
+`tool`, `status`, `verdict`, `country`, `mcp_client`, `latency_bucket`, `error_kind`.
+**No company names or free-text queries are ever sent to GA.**
+
+Setup:
+
+1. Create a GA4 property (free) and a Web data stream.
+2. In **Admin → Data streams → your stream → Measurement Protocol API secrets**, create a
+   secret. Copy the stream's **Measurement ID** (`G-XXXXXXXXXX`) and the secret value.
+3. Set `GA_MEASUREMENT_ID` and `GA_API_SECRET` (env / Docker / `wrangler secret`).
+4. In GA4, register the event params above as **custom dimensions**
+   (Admin → Custom definitions) so they appear in reports. Use `GA_DEBUG=true` to send to
+   GA's validation endpoint while testing.
+
+Unmet-demand analysis: setting `CAPTURE_QUERY_NAMES=true` additionally records searched
+company names for `not_found` / `ambiguous` results to the server's **own** structured logs
+(never to GA), useful for spotting data gaps and content ideas. Off by default.
+
 ## How it works
 
 The server is a thin, stateless proxy with response shaping. An MCP client connects over stdio or stateless Streamable HTTP; a small [Hono](https://hono.dev) app (with `@hono/mcp`) constructs an MCP server per request, calls the SponsorFinder API with the server-side key, validates every response with zod (a contract-drift guard), and shapes it into a compact verdict. Register stats and filter values are cached in-process with a short TTL. Because the core uses only Web-standard APIs (`fetch`, `URL`), the same code runs on Node and Cloudflare Workers — only `src/entry/*` differs.

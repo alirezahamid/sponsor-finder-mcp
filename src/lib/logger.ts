@@ -14,6 +14,8 @@ export interface ToolLogFields {
   verdict?: string | undefined;
   upstreamStatus?: number | undefined;
   errorKind?: string | undefined;
+  /** Searched company name — only set when CAPTURE_QUERY_NAMES is enabled. */
+  query?: string | undefined;
 }
 
 export function logToolCall(fields: ToolLogFields): void {

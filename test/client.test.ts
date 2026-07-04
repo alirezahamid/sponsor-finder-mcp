@@ -15,6 +15,8 @@ const config: AppConfig = {
   apiBase: 'https://api.test',
   apiKey: 'test-key',
   upstreamTimeoutMs: 10_000,
+  analytics: undefined,
+  captureQueryNames: false,
 };
 
 const fuzzyBody: FuzzyResponse = {
