@@ -1,6 +1,7 @@
 import { StreamableHTTPTransport } from '@hono/mcp';
 import { Hono } from 'hono';
 import type { Context } from 'hono';
+import { cors } from 'hono/cors';
 
 import { createServer } from '../server.js';
 
@@ -53,6 +54,28 @@ async function handleMcp(c: Context<{ Bindings: Env }>): Promise<Response | unde
   await server.connect(transport);
   return transport.handleRequest(c);
 }
+
+// Browser-based MCP clients (e.g. claude.ai web) send a CORS preflight before
+// calling /mcp. Without CORS headers the browser blocks the request and the
+// client reports "couldn't reach the MCP server". Allow any origin (the server
+// is public and authless) and expose the session header the transport uses.
+app.use(
+  '*',
+  cors({
+    origin: '*',
+    allowMethods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+    allowHeaders: [
+      'Content-Type',
+      'Accept',
+      'Authorization',
+      'Mcp-Session-Id',
+      'Mcp-Protocol-Version',
+      'Last-Event-ID',
+    ],
+    exposeHeaders: ['Mcp-Session-Id'],
+    maxAge: 86400,
+  }),
+);
 
 app.get('/healthz', (c) => c.json({ ok: true, service: 'sponsor-finder-mcp' }));
 
