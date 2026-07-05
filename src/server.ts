@@ -14,7 +14,7 @@ import { searchSponsorsTool } from './tools/search.js';
 import type { ToolDefinition, ToolDeps, ToolResult } from './tools/types.js';
 
 export const SERVER_NAME = 'sponsor-finder-mcp';
-export const SERVER_TITLE = 'SponsorFinder';
+export const SERVER_TITLE = 'Sponsor Finder';
 export const SERVER_VERSION = '1.0.0';
 export const SERVER_WEBSITE = 'https://sponsorfinder.io';
 

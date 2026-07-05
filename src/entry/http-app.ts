@@ -60,7 +60,7 @@ app.get('/healthz', (c) => c.json({ ok: true, service: 'sponsor-finder-mcp' }));
 // instead of returning a bare 404.
 app.get('/', (c) =>
   c.json({
-    name: 'SponsorFinder MCP server',
+    name: 'Sponsor Finder MCP server',
     description:
       'Check whether a company holds a UK or Netherlands work-visa sponsorship licence.',
     mcp_endpoint: new URL(MCP_PATH, c.req.url).toString(),
