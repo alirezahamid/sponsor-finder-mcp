@@ -16,9 +16,23 @@
   // Required so Node built-ins used by the MCP SDK / deps resolve on Workers.
   "compatibility_flags": ["nodejs_compat"],
 
-  // Enable Workers observability (logs / metrics in the dashboard).
+  // Workers observability. Persisted logs (with invocation logs) let you query
+  // the server's structured tool-call log lines in the Cloudflare dashboard —
+  // this is where CAPTURE_QUERY_NAMES output lands.
   "observability": {
     "enabled": true,
+    "head_sampling_rate": 1,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+      "persist": true,
+      "invocation_logs": true,
+    },
+    "traces": {
+      "enabled": true,
+      "persist": true,
+      "head_sampling_rate": 1,
+    },
   },
 
   // Non-secret environment variables are safe to commit here.
