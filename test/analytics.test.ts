@@ -70,7 +70,7 @@ describe('createAnalytics', () => {
     expect(params.session_id).toBeTruthy();
   });
 
-  it('never sends free-text company names (categorical only)', async () => {
+  it('omits the query by default (categorical only)', async () => {
     const analytics = createAnalytics(gaConfig);
     analytics.track({
       tool: 'check_sponsor_license',
@@ -81,8 +81,24 @@ describe('createAnalytics', () => {
     await Promise.resolve();
 
     const [, init] = (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0]!;
-    const serialized = init.body as string;
-    expect(serialized).not.toMatch(/company_name|query/i);
+    const params = JSON.parse(init.body as string).events[0].params;
+    expect(params.query).toBeUndefined();
+  });
+
+  it('includes the query param only when explicitly provided (opt-in)', async () => {
+    const analytics = createAnalytics(gaConfig);
+    analytics.track({
+      tool: 'check_sponsor_license',
+      ok: true,
+      latencyMs: 50,
+      country: 'uk',
+      query: 'Acme Widgets Ltd',
+    });
+    await Promise.resolve();
+
+    const [, init] = (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0]!;
+    const params = JSON.parse(init.body as string).events[0].params;
+    expect(params.query).toBe('Acme Widgets Ltd');
   });
 
   it('uses the debug endpoint when debug is on', async () => {

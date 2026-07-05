@@ -141,9 +141,10 @@ Because an MCP server has no browser, a GA/GTM JavaScript tag cannot run in it �
 server sends events over HTTP instead. It works on both Node and Cloudflare Workers.
 
 Analytics are **off** unless both `GA_MEASUREMENT_ID` and `GA_API_SECRET` are set.
-Each tool call emits one `mcp_tool_call` event with **categorical parameters only** —
+Each tool call emits one `mcp_tool_call` event with **categorical parameters** —
 `tool`, `status`, `verdict`, `country`, `mcp_client`, `latency_bucket`, `error_kind`.
-**No company names or free-text queries are ever sent to GA.**
+By default **no company names or free-text queries are sent to GA**; the searched name
+is only included (as the `query` param) if you opt in with `CAPTURE_QUERY_NAMES` — see below.
 
 Setup:
 
@@ -155,9 +156,12 @@ Setup:
    (Admin → Custom definitions) so they appear in reports. Use `GA_DEBUG=true` to send to
    GA's validation endpoint while testing.
 
-Unmet-demand analysis: setting `CAPTURE_QUERY_NAMES=true` additionally records searched
-company names for `not_found` / `ambiguous` results to the server's **own** structured logs
-(never to GA), useful for spotting data gaps and content ideas. Off by default.
+Unmet-demand analysis: setting `CAPTURE_QUERY_NAMES=true` records the searched company
+name to the server's structured logs **and** sends it to GA4 as the `query` event param
+(register a `query` custom dimension to see it). Off by default. Caveats: raw names are
+high-cardinality in GA (bucketed as `(other)`) and person-named queries may count as PII
+under GA's terms — a private log store is usually the better home for this, and you should
+add a privacy-policy line before enabling it.
 
 ## How it works
 

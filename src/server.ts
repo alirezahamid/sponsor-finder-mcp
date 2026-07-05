@@ -18,9 +18,6 @@ export const SERVER_TITLE = 'SponsorFinder';
 export const SERVER_VERSION = '1.0.0';
 export const SERVER_WEBSITE = 'https://sponsorfinder.io';
 
-/** Verdicts worth capturing a query name for (unmet-demand analysis). */
-const CAPTURABLE_VERDICTS = new Set(['not_found', 'ambiguous']);
-
 interface RegisterOptions {
   analytics: Analytics;
   captureQueryNames: boolean;
@@ -53,18 +50,17 @@ function registerTool<Shape extends z.ZodRawShape>(
     // `country` is a plain enum arg — safe (categorical) to record.
     const country = stringField(args, 'country');
 
+    // The searched term (check: company_name, search: query). Captured only when
+    // CAPTURE_QUERY_NAMES is enabled — then it reaches both the logs and GA.
+    const query = options.captureQueryNames
+      ? (stringField(args, 'company_name') ?? stringField(args, 'query'))
+      : undefined;
+
     try {
       const result = await def.handler(args as z.infer<z.ZodObject<Shape>>, deps);
       const latencyMs = Date.now() - start;
       const ok = result.isError !== true;
       const verdict = stringField(result.structuredContent, 'verdict');
-
-      // Query-name capture is OFF by default and never reaches GA — it only
-      // enriches the server's own logs, for unmet-demand analysis.
-      const query =
-        options.captureQueryNames && verdict && CAPTURABLE_VERDICTS.has(verdict)
-          ? stringField(args, 'company_name')
-          : undefined;
 
       logToolCall({ tool: def.name, latencyMs, ok, verdict, query });
       options.analytics.track({
@@ -73,6 +69,7 @@ function registerTool<Shape extends z.ZodRawShape>(
         latencyMs,
         country,
         verdict,
+        query,
         mcpClient: options.clientName(),
       });
       return result as CallToolResult;
@@ -80,13 +77,14 @@ function registerTool<Shape extends z.ZodRawShape>(
       const latencyMs = Date.now() - start;
       const errorKind = error instanceof SponsorFinderError ? error.kind : 'unknown';
 
-      logToolCall({ tool: def.name, latencyMs, ok: false, errorKind });
+      logToolCall({ tool: def.name, latencyMs, ok: false, errorKind, query });
       options.analytics.track({
         tool: def.name,
         ok: false,
         latencyMs,
         country,
         errorKind,
+        query,
         mcpClient: options.clientName(),
       });
 

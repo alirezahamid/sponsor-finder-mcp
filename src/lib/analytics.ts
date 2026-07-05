@@ -7,10 +7,11 @@ import type { AnalyticsConfig } from '../config.js';
  * Web-standard only (`fetch`, `crypto.randomUUID`) so it runs on Node and
  * Cloudflare Workers alike.
  *
- * Privacy: events are strictly CATEGORICAL — tool name, verdict, country, client,
- * latency bucket, error kind. No company names or free-text queries are ever
- * sent here. Delivery is fire-and-forget: a failed or slow send never blocks or
- * breaks a tool call.
+ * Privacy: events are CATEGORICAL by default — tool name, verdict, country,
+ * client, latency bucket, error kind. The searched company name is only included
+ * (as the `query` param) when the caller opts in via CAPTURE_QUERY_NAMES; it is
+ * omitted otherwise. Delivery is fire-and-forget: a failed or slow send never
+ * blocks or breaks a tool call.
  */
 
 const GA_ENDPOINT = 'https://www.google-analytics.com/mp/collect';
@@ -26,6 +27,8 @@ export interface ToolEvent {
   verdict?: string | undefined;
   mcpClient?: string | undefined;
   errorKind?: string | undefined;
+  /** Searched company name — only set when CAPTURE_QUERY_NAMES is enabled. */
+  query?: string | undefined;
 }
 
 /** Coarse latency buckets keep GA cardinality low and reports readable. */
@@ -83,6 +86,7 @@ class Ga4Analytics implements Analytics {
             ...(event.verdict ? { verdict: event.verdict } : {}),
             ...(event.mcpClient ? { mcp_client: event.mcpClient } : {}),
             ...(event.errorKind ? { error_kind: event.errorKind } : {}),
+            ...(event.query ? { query: event.query } : {}),
             // Required for GA4 to attribute the event to a session in reports.
             session_id: this.sessionId,
             engagement_time_msec: 1,
