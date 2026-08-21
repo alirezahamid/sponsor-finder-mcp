@@ -70,6 +70,19 @@ describe('createAnalytics', () => {
     expect(params.session_id).toBeTruthy();
   });
 
+  it('uses the caller-derived client_id when one is supplied', async () => {
+    // Without this the constructor falls back to a random UUID per instance,
+    // and the hosted transport builds one instance per HTTP request.
+    const analytics = createAnalytics(gaConfig, undefined, 'stable-caller-id');
+    analytics.track({ tool: 'search_sponsors', ok: true, latencyMs: 10 });
+    await Promise.resolve();
+
+    const [, init] = (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0]!;
+    const body = JSON.parse(init.body as string);
+    expect(body.client_id).toBe('stable-caller-id');
+    expect(body.events[0].params.session_id).toBe('stable-caller-id');
+  });
+
   it('omits the query by default (categorical only)', async () => {
     const analytics = createAnalytics(gaConfig);
     analytics.track({

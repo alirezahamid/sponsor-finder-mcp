@@ -5,6 +5,7 @@ import type { z } from 'zod';
 import { SponsorFinderClient } from './api/client.js';
 import { loadConfig, type AppConfig } from './config.js';
 import { createAnalytics, type Analytics, type WaitUntil } from './lib/analytics.js';
+import type { RequestIdentity } from './lib/client-identity.js';
 import { SponsorFinderError, toSafeMessage } from './lib/errors.js';
 import { logToolCall } from './lib/logger.js';
 import { checkLicenseTool } from './tools/check-license.js';
@@ -139,7 +140,11 @@ function getClient(config: AppConfig): SponsorFinderClient {
  */
 export function createServer(
   env: Record<string, string | undefined>,
-  options: { waitUntil?: WaitUntil | undefined } = {},
+  options: {
+    waitUntil?: WaitUntil | undefined;
+    /** Caller identity derived from request headers; HTTP transports only. */
+    identity?: RequestIdentity | undefined;
+  } = {},
 ): McpServer {
   const config = loadConfig(env);
   const deps: ToolDeps = { client: getClient(config) };
@@ -154,9 +159,17 @@ export function createServer(
   });
 
   const toolOptions: RegisterOptions = {
-    analytics: createAnalytics(config.analytics, options.waitUntil),
+    analytics: createAnalytics(
+      config.analytics,
+      options.waitUntil,
+      options.identity?.clientId,
+    ),
     captureQueryNames: config.captureQueryNames,
-    clientName: () => server.server.getClientVersion()?.name,
+    // Prefer what the protocol told us — accurate, and it works on stdio where
+    // one server handles the whole session. Fall back to the User-Agent, which
+    // is the only identity a stateless HTTP request carries.
+    clientName: () =>
+      server.server.getClientVersion()?.name ?? options.identity?.client,
   };
 
   registerTool(server, deps, checkLicenseTool, toolOptions);

@@ -56,14 +56,20 @@ const NOOP: Analytics = { track() {} };
 
 class Ga4Analytics implements Analytics {
   private readonly endpoint: string;
-  // One synthetic client/session per process (there are no end users to identify).
-  private readonly clientId = crypto.randomUUID();
-  private readonly sessionId = crypto.randomUUID();
+  // Derived from the caller's User-Agent + IP so the same client is counted as
+  // one user across requests. Previously a random UUID per instance — and since
+  // the hosted transport builds one instance per HTTP request, that made every
+  // single tool call its own "user" and its own "session".
+  private readonly clientId: string;
+  private readonly sessionId: string;
 
   constructor(
     config: AnalyticsConfig,
     private readonly waitUntil: WaitUntil | undefined,
+    clientId?: string,
   ) {
+    this.clientId = clientId ?? crypto.randomUUID();
+    this.sessionId = this.clientId;
     const base = config.debug ? GA_DEBUG_ENDPOINT : GA_ENDPOINT;
     const params = new URLSearchParams({
       measurement_id: config.measurementId,
@@ -123,6 +129,7 @@ class Ga4Analytics implements Analytics {
 export function createAnalytics(
   config: AnalyticsConfig | undefined,
   waitUntil?: WaitUntil,
+  clientId?: string,
 ): Analytics {
-  return config ? new Ga4Analytics(config, waitUntil) : NOOP;
+  return config ? new Ga4Analytics(config, waitUntil, clientId) : NOOP;
 }

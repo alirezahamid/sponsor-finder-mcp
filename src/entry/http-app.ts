@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 import type { Context } from 'hono';
 import { cors } from 'hono/cors';
 
+import { identifyRequest } from '../lib/client-identity.js';
 import { createServer } from '../server.js';
 
 /** Canonical MCP endpoint path advertised everywhere. */
@@ -49,7 +50,12 @@ async function handleMcp(c: Context<{ Bindings: Env }>): Promise<Response | unde
     waitUntil = undefined;
   }
 
-  const server = createServer(resolveEnv(c.env), { waitUntil });
+  // The stateless transport means this server instance never sees `initialize`,
+  // so clientInfo is unavailable at tool-call time. The request headers are the
+  // only identity we get.
+  const identity = identifyRequest(c.req.raw.headers);
+
+  const server = createServer(resolveEnv(c.env), { waitUntil, identity });
   const transport = new StreamableHTTPTransport();
   await server.connect(transport);
   return transport.handleRequest(c);
