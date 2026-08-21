@@ -9,6 +9,7 @@ import { SponsorFinderError, toSafeMessage } from './lib/errors.js';
 import { logToolCall } from './lib/logger.js';
 import { checkLicenseTool } from './tools/check-license.js';
 import { getRegisterInfoTool } from './tools/register-info.js';
+import { checkSalaryThresholdTool } from './tools/salary-check.js';
 import { getSponsorDetailsTool } from './tools/details.js';
 import { searchSponsorsTool } from './tools/search.js';
 import type { ToolDefinition, ToolDeps, ToolResult } from './tools/types.js';
@@ -162,6 +163,7 @@ export function createServer(
   registerTool(server, deps, searchSponsorsTool, toolOptions);
   registerTool(server, deps, getSponsorDetailsTool, toolOptions);
   registerTool(server, deps, getRegisterInfoTool, toolOptions);
+  registerTool(server, deps, checkSalaryThresholdTool, toolOptions);
 
   return server;
 }
