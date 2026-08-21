@@ -28,6 +28,8 @@ import {
   type StatusResponse,
   type UkFilters,
   type UkOrganization,
+  SalaryCheckResponseSchema,
+  type SalaryCheckResponse,
 } from './schemas.js';
 
 const STATUS_TTL_MS = 10 * 60 * 1000; // §7: /status cached ~10 min
@@ -114,6 +116,20 @@ export class SponsorFinderClient {
       this.request('/organization/filters', NlFiltersSchema, { country: 'nl' }),
     );
     return value as NlFilters;
+  }
+
+  /** `/occupation/check` — three-state Skilled Worker salary verdict. */
+  checkSalary(params: {
+    soc?: string;
+    title?: string;
+    salary: number;
+    weeklyHours: number;
+    phdRelevant?: boolean;
+    phdStem?: boolean;
+    immigrationSalaryList?: boolean;
+    newEntrant?: boolean;
+  }): Promise<SalaryCheckResponse> {
+    return this.request('/occupation/check', SalaryCheckResponseSchema, { ...params });
   }
 
   // -- Internals -----------------------------------------------------------

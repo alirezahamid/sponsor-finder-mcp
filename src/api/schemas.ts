@@ -228,3 +228,38 @@ export const UpstreamErrorBodySchema = z.object({
   error: z.string().optional(),
 });
 export type UpstreamErrorBody = z.infer<typeof UpstreamErrorBodySchema>;
+
+// ---------------------------------------------------------------------------
+// §3.9  GET /occupation/check  (Skilled Worker salary checker, v1)
+// ---------------------------------------------------------------------------
+
+export const SalaryOptionSchema = z.object({
+  option: z.string(),
+  condition: z.string(),
+  qualifies: z.boolean(),
+  generalThresholdAnnual: z.number(),
+  proRatedGoingRateAnnual: z.number().nullable(),
+  requiredAnnual: z.number().nullable(),
+  meets: z.boolean().nullable(),
+});
+
+export const SalaryCheckResponseSchema = z.object({
+  route: z.string(),
+  occupation: z.object({ socCode: z.string(), title: z.string() }),
+  candidates: z.array(
+    z.object({ socCode: z.string(), title: z.string(), score: z.number() }),
+  ),
+  evaluation: z.object({
+    verdict: z.enum(['eligible', 'not_eligible', 'uncertain']),
+    uncertainReason: z.string().optional(),
+    satisfiedByOption: z.string().optional(),
+    shortfallAnnual: z.number().optional(),
+    countedWeeklyHours: z.number(),
+    options: z.array(SalaryOptionSchema),
+  }),
+  goingRateAnnual: z.number().nullable(),
+  effectiveFrom: z.string().nullable(),
+  sourceUrl: z.string(),
+  disclaimer: z.string(),
+});
+export type SalaryCheckResponse = z.infer<typeof SalaryCheckResponseSchema>;
