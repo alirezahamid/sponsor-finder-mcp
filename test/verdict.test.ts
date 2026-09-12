@@ -85,6 +85,30 @@ describe('classify', () => {
     expect(result.match?.id).toBe(1);
   });
 
+  it('promotes an exact alias match (brand query) without a clear margin', () => {
+    const result = classify('deliveroo', [
+      hit({ id: 1, name: 'Roofoods Ltd', score: 0.6, matchedOn: 'brand', alias: 'Deliveroo', tradingName: 'Deliveroo' }),
+      hit({ id: 2, name: 'Deliverance Ltd', score: 0.58 }),
+    ]);
+    expect(result.verdict).toBe('licensed');
+    expect(result.match?.id).toBe(1);
+    expect(result.match?.alias).toBe('Deliveroo');
+  });
+
+  it('ignores an alias that does not equal the query for the exact-match promotion', () => {
+    const result = classify('deliver', [
+      hit({ id: 1, name: 'Roofoods Ltd', score: 0.6, matchedOn: 'brand', alias: 'Deliveroo' }),
+      hit({ id: 2, name: 'Deliverance Ltd', score: 0.58 }),
+    ]);
+    expect(result.verdict).toBe('ambiguous');
+  });
+
+  it('accepts hits without the alias fields (cached pre-release payloads)', () => {
+    const result = classify('acme', [hit({ id: 7, isActive: true, score: 0.9 })]);
+    expect(result.match?.matchedOn).toBeNull();
+    expect(result.match?.alias).toBeNull();
+  });
+
   it('does not promote an exact name match whose score is below the threshold', () => {
     const result = classify('acme ltd', [hit({ id: 1, name: 'Acme Ltd', score: 0.5 })]);
     expect(result.verdict).toBe('not_found');

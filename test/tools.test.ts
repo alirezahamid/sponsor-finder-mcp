@@ -116,6 +116,40 @@ describe('check_sponsor_license', () => {
     expect(match.isActive).toBe(true);
   });
 
+  it('explains an alias hit: "deliveroo" names Roofoods Ltd via its trading name', async () => {
+    const fuzzy: FuzzyResponse = {
+      data: [
+        {
+          id: 1,
+          name: 'Acme Ltd',
+          totalRecords: 5,
+          isActive: true,
+          score: 1,
+          tradingName: 'Deliveroo',
+          matchedOn: 'trading_name',
+          alias: 'Deliveroo',
+        },
+      ],
+      query: 'deliveroo',
+      appliedThreshold: 0.2,
+      total: 1,
+    };
+    fake.fuzzy.mockResolvedValue(fuzzy);
+    fake.getUkOrganization.mockResolvedValue(ukOrg);
+
+    const result = await checkLicenseTool.handler(
+      { company_name: 'deliveroo', country: 'uk' },
+      { client },
+    );
+
+    expect(result.structuredContent?.verdict).toBe('licensed');
+    expect(result.content[0]?.text).toContain('"Deliveroo" is the trading name of Acme Ltd.');
+    const match = result.structuredContent?.match as { alias?: string; matchedOn?: string; tradingName?: string };
+    expect(match.alias).toBe('Deliveroo');
+    expect(match.matchedOn).toBe('trading_name');
+    expect(match.tradingName).toBe('Deliveroo');
+  });
+
   it('returns ambiguous for close hits without fetching organization detail', async () => {
     const fuzzy: FuzzyResponse = {
       data: [
