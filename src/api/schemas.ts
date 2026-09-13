@@ -21,12 +21,28 @@ export type SponsorType = z.infer<typeof SponsorTypeSchema>;
 // §3.1  GET /organization/fuzzy
 // ---------------------------------------------------------------------------
 
+export const MatchedOnSchema = z.enum([
+  'name',
+  'trading_name',
+  'brand',
+  'former_name',
+  'legal_name',
+  'domain',
+]);
+export type MatchedOn = z.infer<typeof MatchedOnSchema>;
+
 export const FuzzyHitSchema = z.object({
   id: z.number().int(),
   name: z.string(),
   totalRecords: z.number().int(),
   isActive: z.boolean(),
   score: z.number(),
+  // Added upstream 2026-09-13. Optional as well as nullable: organisation
+  // payloads are Redis-cached for minutes, so right after a deploy some hits
+  // carry the keys and some omit them.
+  tradingName: z.string().nullable().optional(),
+  matchedOn: MatchedOnSchema.nullable().optional(),
+  alias: z.string().nullable().optional(),
 });
 export type FuzzyHit = z.infer<typeof FuzzyHitSchema>;
 

@@ -1,4 +1,4 @@
-import type { FuzzyHit } from '../api/schemas.js';
+import type { FuzzyHit, MatchedOn } from '../api/schemas.js';
 
 /**
  * Match-classification logic for `check_sponsor_license` (spec §4.1 step 2).
@@ -22,6 +22,26 @@ export interface Candidate {
   score: number;
   isActive: boolean;
   totalRecords: number;
+  /** Name the company trades under, when the API knows one. */
+  tradingName?: string | null;
+  /** Which name the query matched; absent or 'name' means the register name. */
+  matchedOn?: MatchedOn | null;
+  /** The alias text that matched, when matchedOn is not 'name'. */
+  alias?: string | null;
+}
+
+/** Sentence fragment for "<alias> is the <label> <register name>". */
+export const MATCHED_ON_LABEL: Record<Exclude<MatchedOn, 'name'>, string> = {
+  trading_name: 'the trading name of',
+  brand: 'a name used by',
+  former_name: 'the former name of',
+  legal_name: 'the legal name of',
+  domain: 'the website of',
+};
+
+/** True when the hit came in through an alias rather than the register name. */
+export function isAliasHit(c: Candidate): c is Candidate & { alias: string; matchedOn: Exclude<MatchedOn, 'name'> } {
+  return !!c.alias && !!c.matchedOn && c.matchedOn !== 'name';
 }
 
 export interface Classification {
@@ -44,6 +64,9 @@ function toCandidate(hit: FuzzyHit): Candidate {
     score: hit.score,
     isActive: hit.isActive,
     totalRecords: hit.totalRecords,
+    tradingName: hit.tradingName ?? null,
+    matchedOn: hit.matchedOn ?? null,
+    alias: hit.alias ?? null,
   };
 }
 
@@ -66,7 +89,11 @@ export function classify(query: string, hits: readonly FuzzyHit[]): Classificati
   const top = sorted[0]!;
   const second = sorted[1];
 
-  const isExactMatch = normalizeName(top.name) === normalizeName(query);
+  // An exact match on the register name, or on the alias the API says the
+  // query hit ("deliveroo" -> Roofoods Ltd via its trading name).
+  const q = normalizeName(query);
+  const isExactMatch =
+    normalizeName(top.name) === q || (isAliasHit(top) && normalizeName(top.alias) === q);
   const isClearWinner =
     second === undefined || top.score - second.score >= CLEAR_WINNER_MARGIN;
   const isConfident =

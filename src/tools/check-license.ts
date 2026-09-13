@@ -16,7 +16,9 @@ import {
   scoreText,
 } from '../lib/format.js';
 import {
+  MATCHED_ON_LABEL,
   classify,
+  isAliasHit,
   type Candidate,
   type Classification,
   type Verdict,
@@ -83,6 +85,10 @@ function candidateJson(candidate: Candidate) {
     name: candidate.name,
     score: Number(candidate.score.toFixed(4)),
     isActive: candidate.isActive,
+    ...(candidate.tradingName ? { tradingName: candidate.tradingName } : {}),
+    ...(isAliasHit(candidate)
+      ? { matchedOn: candidate.matchedOn, alias: candidate.alias }
+      : {}),
   };
 }
 
@@ -111,6 +117,9 @@ function renderMatchFromFuzzy(
 
   const text = [
     `${licensed ? '✅' : '⚠️'} ${match.name} ${verb}.`,
+    ...(isAliasHit(match)
+      ? [`"${match.alias}" is ${MATCHED_ON_LABEL[match.matchedOn]} ${match.name}.`]
+      : []),
     confidence,
     asOf,
   ].join('\n');
@@ -157,9 +166,13 @@ async function renderMatch(
     const locations = org.cities.map((c) => c.displayName ?? c.name);
     const currentRecords = org.sponsorRecords.filter((r) => r.isInCurrentCsv).length;
 
+    const aliasLine = isAliasHit(match)
+      ? [`"${match.alias}" is ${MATCHED_ON_LABEL[match.matchedOn]} ${org.name}.`]
+      : [];
     const lines = licensed
       ? [
           `✅ ${org.name} holds an active UK sponsorship licence.`,
+          ...aliasLine,
           `Routes: ${joinList(org.routes)}`,
           `Rating: ${joinList(org.typeRatings)}  |  Locations: ${joinList(locations, ', ')}`,
           `On register since ${formatDate(org.firstSeenAt)}. ${confidence}`,
@@ -167,6 +180,7 @@ async function renderMatch(
         ]
       : [
           `⚠️ ${org.name} is NOT currently on the UK sponsor register (formerly licensed).`,
+          ...aliasLine,
           `It was last seen on the register on ${formatDate(org.lastSeenAt)}.`,
           `Previous routes: ${joinList(org.routes)}. ${confidence}`,
           asOf,
@@ -181,6 +195,8 @@ async function renderMatch(
         name: org.name,
         isActive: org.isActive,
         score: candidateJson(match).score,
+        ...(match.tradingName ? { tradingName: match.tradingName } : {}),
+        ...(isAliasHit(match) ? { matchedOn: match.matchedOn, alias: match.alias } : {}),
         routes: org.routes,
         typeRatings: org.typeRatings,
         locations,
