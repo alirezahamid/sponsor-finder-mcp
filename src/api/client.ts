@@ -91,8 +91,16 @@ export class SponsorFinderClient {
     return this.request('/organization/search', SearchResponseSchema, { ...params });
   }
 
-  getHistory(id: number, limit = 20): Promise<HistoryResponse> {
-    return this.request(`/organization/${id}/history`, HistoryResponseSchema, { limit });
+  /**
+   * `country` picks the register the id belongs to: UK and NL ids overlap, so
+   * without it the API reads the UK record with the same id (SF-90). An API
+   * older than SF-89 ignores the param and behaves as before.
+   */
+  getHistory(id: number, country: Country, limit = 20): Promise<HistoryResponse> {
+    return this.request(`/organization/${id}/history`, HistoryResponseSchema, {
+      limit,
+      country,
+    });
   }
 
   /** `/status`, cached ~10 min. Powers the `data_as_of` freshness stamp. */

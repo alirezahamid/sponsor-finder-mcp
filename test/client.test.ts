@@ -78,6 +78,24 @@ describe('SponsorFinderClient', () => {
     expect(options.headers).toMatchObject({ 'x-api-key': 'test-key' });
   });
 
+  it.each(['uk', 'nl'] as const)(
+    'getHistory sends country=%s and limit to /organization/:id/history',
+    async (country) => {
+      fetchMock().mockResolvedValueOnce(
+        jsonResponse({ orgId: 7, orgName: 'X', events: [], total: 0, page: 1, totalPages: 0 }),
+      );
+      const client = new SponsorFinderClient(config);
+
+      const result = await client.getHistory(7, country, 20);
+      expect(result.orgId).toBe(7);
+
+      const parsed = new URL(fetchMock().mock.calls[0]![0] as string);
+      expect(parsed.pathname).toBe('/organization/7/history');
+      expect(parsed.searchParams.get('country')).toBe(country);
+      expect(parsed.searchParams.get('limit')).toBe('20');
+    },
+  );
+
   it('maps a 404 response to NotFoundError', async () => {
     fetchMock().mockResolvedValueOnce(
       jsonResponse({ statusCode: 404, message: 'Not Found' }, 404),
