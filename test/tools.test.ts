@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SponsorFinderClient } from '../src/api/client.js';
 import type {
   FuzzyResponse,
+  HistoryResponse,
   NlOrganization,
   RegisterStats,
   SearchResponse,
@@ -265,6 +266,61 @@ describe('get_sponsor_details', () => {
 
     expect(result.structuredContent?.found).toBe(false);
     expect(result.isError).toBeFalsy();
+  });
+
+  const historyBody = (orgId: number, orgName: string): HistoryResponse => ({
+    orgId,
+    orgName,
+    events: [{ eventType: 'ADDED', timestamp: '2026-01-05T00:00:00.000Z' }],
+    total: 1,
+    page: 1,
+    totalPages: 1,
+  });
+
+  it('asks for UK history with country uk', async () => {
+    fake.getUkOrganization.mockResolvedValue(ukOrg);
+    fake.getHistory.mockResolvedValue(historyBody(1, 'Acme Ltd'));
+
+    const result = await getSponsorDetailsTool.handler(
+      { org_id: 1, country: 'uk', include_history: true },
+      { client },
+    );
+
+    expect(fake.getHistory).toHaveBeenCalledTimes(1);
+    expect(fake.getHistory).toHaveBeenCalledWith(1, 'uk', 20);
+    expect(result.structuredContent?.found).toBe(true);
+    expect(result.content[0]?.text).toContain('History: 1 recorded event(s).');
+  });
+
+  it('asks for NL history with country nl, so a Dutch org with events is found (SF-90)', async () => {
+    fake.getNlOrganization.mockResolvedValue(nlOrg);
+    fake.getHistory.mockResolvedValue(historyBody(2, 'Dutch BV'));
+
+    const result = await getSponsorDetailsTool.handler(
+      { org_id: 2, country: 'nl', include_history: true },
+      { client },
+    );
+
+    expect(fake.getHistory).toHaveBeenCalledTimes(1);
+    expect(fake.getHistory).toHaveBeenCalledWith(2, 'nl', 20);
+    expect(fake.getUkOrganization).not.toHaveBeenCalled();
+    expect(result.isError).toBeFalsy();
+    expect(result.structuredContent?.found).toBe(true);
+    expect(result.content[0]?.text).toContain('Dutch BV');
+    expect(result.content[0]?.text).toContain('History: 1 recorded event(s).');
+    const history = result.structuredContent?.history as { total: number };
+    expect(history.total).toBe(1);
+  });
+
+  it('does not fetch history when include_history is false', async () => {
+    fake.getNlOrganization.mockResolvedValue(nlOrg);
+
+    await getSponsorDetailsTool.handler(
+      { org_id: 2, country: 'nl', include_history: false },
+      { client },
+    );
+
+    expect(fake.getHistory).not.toHaveBeenCalled();
   });
 });
 

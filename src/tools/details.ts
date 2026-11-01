@@ -60,7 +60,7 @@ async function renderUk(
 ): Promise<ToolResult> {
   const org = await client.getUkOrganization(orgId);
   const history = includeHistory
-    ? await client.getHistory(orgId, HISTORY_LIMIT)
+    ? await client.getHistory(orgId, 'uk', HISTORY_LIMIT)
     : undefined;
 
   const locations = org.cities.map((c) => c.displayName ?? c.name);
@@ -114,7 +114,7 @@ async function renderNl(
 ): Promise<ToolResult> {
   const org = await client.getNlOrganization(orgId);
   const history = includeHistory
-    ? await client.getHistory(orgId, HISTORY_LIMIT)
+    ? await client.getHistory(orgId, 'nl', HISTORY_LIMIT)
     : undefined;
 
   const lines = [
